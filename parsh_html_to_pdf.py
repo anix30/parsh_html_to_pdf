@@ -2,6 +2,7 @@ import os
 import requests
 from bs4 import BeautifulSoup
 import pdfkit
+from PyPDF2 import PdfFileReader, PdfFileWriter
 
 # Get the chapter content
 html_template = """
@@ -39,9 +40,9 @@ def parse_title_and_url(html):
     :param html: 需要解析的网页内容
     :return None
     """
-    soup = BeautifulSoup(html, 'html.parser')
-
+    soup = BeautifulSoup(html, 'html.parser').a.text
     # Get the book name
+    book_name = soup.find('div', class_='wy-side-nav-search')
     menu = soup.find_all('div', class_='section')
     chapters = menu[0].div.ul.find_all('li', class_='toctree-l1')
     for chapter in chapters:
@@ -120,18 +121,71 @@ def parse_html_to_pdf():
     except Exception as e:
         print(e)
         
+# Merge pdf documents 
+def merge_pdf(infnList, outfn):
+    """
+    合并pdf
+    :param infnList: 要合并的PDF文件路径列表
+    :param outfn: 保存的PDF文件名
+    :return: None
+    """
+    page_num = 0
+    pdf_output = PdfFileWriter()
 
+    for pdf in infnList:
+        # Merge the first_dir content
+        first_lever_title = pdf['title']
+        dir_name = os.path.join(os.path.dirname(__file__), 'gen', first_level_title)
+        pdf_path = os.path.join(dir_name, first_level_title + '.pdf')
 
+        pdf_input = PdfFileReader(open(pdf_path, 'rb'))
+        # Get the total_num pdf
+        page_count = pdf_input.getNumPages()
+        for i in range(page_count):
+            pdf_output.addPage(pdf_input.getPage(i))
+
+        # Add bookmark
+
+        parent_bookmark = pdf_output.addBookmark(first_level_title, pagenum=page_num)
+
+        # Page increase
+        page_num += page_count
+
+        # Merge the sub_chapter
+        if pdf['child_chapters']:
+            for child in pdf['child_chapters']:
+                second_level_title = child['title']
+                pdf_path = os.path.join(dir_name, second_level_title + '.pdf')
+
+                pdf_input = PdfFileReader(open(pdf_path), 'rb')
+                # Get the total_num pdf
+                page_count = pdf_input.getNumPages()
+                for i in range(page_count):
+                    pdf_output.addPage(pdf_input.getPage(i))
+
+                    # Add bookmark
+                    pdf_output.addBookmark(second_level_title, pagenum=page_num, parent=parent_bookmark)
+
+                    # Page increase
+                    page_num += page_count
+    # Merge all the pdf
+    pdf_output.write(open(outfn, 'wb'))
+
+    
 
 # Global variables
 base_url = 'http://python3-cookbook.readthedocs.io/zh_CN/latest/'
-book_name = 'python3-cookbook' 
+ 
 chapter_info = []
-html = get_content(base_url)
+html = get_one_page(base_url)
+html_content = get_content(base_url)
 
 parse_title_and_url(html)
 parse_html_to_pdf()
-save_pdf(html, 'python3_cookbook.pdf')
+save_pdf(html_content, 'python3_cookbook.pdf')
+
+merge_pdf(chapter_info, 'merge_gen')
+
 
 
         
