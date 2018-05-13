@@ -40,9 +40,9 @@ def parse_title_and_url(html):
     :param html: 需要解析的网页内容
     :return None
     """
-    soup = BeautifulSoup(html, 'html.parser').a.text
+    soup = BeautifulSoup(html, 'html.parser')
     # Get the book name
-    book_name = soup.find('div', class_='wy-side-nav-search')
+    book_name = soup.find('div', class_='wy-side-nav-search').a.text
     menu = soup.find_all('div', class_='section')
     chapters = menu[0].div.ul.find_all('li', class_='toctree-l1')
     for chapter in chapters:
@@ -134,7 +134,7 @@ def merge_pdf(infnList, outfn):
 
     for pdf in infnList:
         # Merge the first_dir content
-        first_lever_title = pdf['title']
+        first_level_title = pdf['title']
         dir_name = os.path.join(os.path.dirname(__file__), 'gen', first_level_title)
         pdf_path = os.path.join(dir_name, first_level_title + '.pdf')
 
@@ -157,17 +157,17 @@ def merge_pdf(infnList, outfn):
                 second_level_title = child['title']
                 pdf_path = os.path.join(dir_name, second_level_title + '.pdf')
 
-                pdf_input = PdfFileReader(open(pdf_path), 'rb')
+                pdf_input = PdfFileReader(open(pdf_path, 'rb'))
                 # Get the total_num pdf
                 page_count = pdf_input.getNumPages()
                 for i in range(page_count):
                     pdf_output.addPage(pdf_input.getPage(i))
 
-                    # Add bookmark
-                    pdf_output.addBookmark(second_level_title, pagenum=page_num, parent=parent_bookmark)
+                # Add bookmark
+                pdf_output.addBookmark(second_level_title, pagenum=page_num, parent=parent_bookmark)
 
-                    # Page increase
-                    page_num += page_count
+                # Page increase
+                page_num += page_count
     # Merge all the pdf
     pdf_output.write(open(outfn, 'wb'))
 
